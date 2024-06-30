@@ -159,14 +159,14 @@ if __name__ == "__main__":
     np.random.seed(1)  # Reproducibility!
 
     shuffled_indices = np.random.permutation(len(tweets))
-    split_idx = int(0.9 * len(tweets))
+    split_idx = int(0.999 * len(tweets))
 
     train_indices = shuffled_indices[:split_idx]
     val_indices = shuffled_indices[split_idx:]
 
     if args.train_samples is not None:
         train_indices = train_indices[:args.train_samples]
-        # val_indices = val_indices[:500]
+        val_indices = val_indices[:1000]
 
     print("Train/Val sizes:", len(train_indices), len(val_indices))
     train_dataset = TweetsDataset([
