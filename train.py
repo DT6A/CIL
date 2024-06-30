@@ -62,6 +62,12 @@ def get_args():
         default=False,
         help='Use small training set'
     )
+    parser.add_argument(
+        '--disable_wandb',
+        action='store_true',
+        default=False,
+        help='Stop using wandb'
+    )
     args = parser.parse_args()
     return args
 
@@ -69,13 +75,13 @@ def get_args():
 if __name__ == "__main__":
 
     args = get_args()
-
-    wandb.init(
-        project="CIL-logs",
-        config=vars(args),
-        name=args.run_name,
-        save_code=True,
-    )
+    if not args.disable_wandb:
+        wandb.init(
+            project="CIL-logs",
+            config=vars(args),
+            name=args.run_name,
+            save_code=True,
+        )
 
     tweets = []
     labels = []
@@ -226,9 +232,10 @@ if __name__ == "__main__":
             progress_bar.update(1)
             global_step += 1
 
-            wandb.log(
-                {"loss": loss.item()}, step=global_step
-            )
+            if not args.disable_wandb:
+                wandb.log(
+                    {"loss": loss.item()}, step=global_step
+                )
 
             if global_step % args.eval_every == 0:
                 metric = evaluate.load("accuracy")
@@ -249,10 +256,10 @@ if __name__ == "__main__":
                         os.path.join(f"checkpoints/{args.run_name}", f"checkpoint_best"),
                         max_shard_size="500MB",
                     )
-
-                wandb.log(
-                    {"validation_accuracy": accuracy['accuracy']}, step=global_step
-                )
+                if not args.disable_wandb:
+                    wandb.log(
+                        {"validation_accuracy": accuracy['accuracy']}, step=global_step
+                    )
                 model.train()
 
         metric = evaluate.load("accuracy")
@@ -273,6 +280,7 @@ if __name__ == "__main__":
                 max_shard_size="500MB",
             )
         print("Final accuracy:", accuracy)
-        wandb.log(
-            {"validation_accuracy": accuracy['accuracy']}, step=global_step
-        )
+        if not args.disable_wandb:
+            wandb.log(
+                {"validation_accuracy": accuracy['accuracy']}, step=global_step
+            )
