@@ -71,7 +71,7 @@ if __name__ == "__main__":
     args = get_args()
 
     wandb.init(
-        project="CIL",
+        project="CIL-logs",
         config=vars(args),
         name=args.run_name,
         save_code=True,
