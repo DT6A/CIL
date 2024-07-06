@@ -44,6 +44,10 @@ def get_args():
     parser.add_argument(
         '--batch_size', type=int, default=32, help='Batch size'
     )
+    parser.add_argument(
+        '--checkpoint', type=str, default='checkpoint_best', help='Checkpoint to load'
+    )
+    parser.add_argument('--checkpoint_dir', type=str, default='.', help='Checkpoint directory')
     args = parser.parse_args()
     return args
 
@@ -84,7 +88,7 @@ if __name__ == "__main__":
     eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False)
 
     model = AutoModelForSequenceClassification.from_pretrained(
-        f"checkpoints/{args.run_name}/checkpoint_best"
+        f"/{args.checkpoint_dir}/checkpoints/{args.run_name}/{args.checkpoint}"
     )
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
