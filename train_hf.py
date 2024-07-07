@@ -37,7 +37,7 @@ def get_args():
     parser.add_argument('--lora_dropout', type=float, default=0.1, help='LoRA dropout')
     parser.add_argument('--target_modules', type=Optional[str], default=None, help='LoRA target modules')
     parser.add_argument('--checkpoint_dir', type=str, default='.', help='Checkpoint directory')
-    parser.add_argument('--use_trained_tokenizer', type=bool, default=False, help='Use a trained tokenizer')
+    parser.add_argument('--use_trained_tokenizer', action=argparse.BooleanOptionalAction, help='Use a trained tokenizer')
     return parser.parse_args()
 
 def load_tweets(filename, label):
@@ -48,8 +48,15 @@ def prepare_dataset(tweets, labels, tokenizer):
     dataset = Dataset.from_dict({"text": tweets, "label": labels})
     return dataset.map(lambda examples: tokenizer(examples["text"], padding="longest"), batched=True)
 
+args = None
+
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred
+    global args
+    if "flan-t5" in args.model_name:
+        (logits, _), labels = eval_pred
+    else:
+        logits, labels = eval_pred
+    print(logits)
     predictions = np.argmax(logits, axis=-1)
     return evaluate.load("accuracy").compute(predictions=predictions, references=labels)
 
@@ -73,6 +80,7 @@ def set_seed(seed: int) -> None:
 def main():
     set_seed(42)
     
+    global args
     args = get_args()
 
     if not args.disable_wandb:
