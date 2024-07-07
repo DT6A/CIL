@@ -73,7 +73,10 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
     def tokenize_function(examples):
-        return tokenizer(examples, padding="max_length", truncation=True)
+        if "flan" not in args.run_name:
+            return tokenizer(examples, padding="max_length", truncation=True)
+        else:
+            return tokenizer(examples, padding="max_length", return_token_type_ids=False)
 
     np.random.seed(1)  # Reproducibility!
 
@@ -102,7 +105,8 @@ if __name__ == "__main__":
             "labels": torch.LongTensor(labels),
         })
         batch["attention_mask"] = torch.LongTensor(batch["attention_mask"])
-        batch["token_type_ids"] = torch.LongTensor(batch["token_type_ids"])
+        if "token_type_ids" in batch:
+            batch["token_type_ids"] = torch.LongTensor(batch["token_type_ids"])
         batch["input_ids"] = torch.LongTensor(batch["input_ids"])
         batch = {k: v.to(device) for k, v in batch.items()}
         return batch
