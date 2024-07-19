@@ -44,6 +44,10 @@ def get_args():
     parser.add_argument(
         '--batch_size', type=int, default=32, help='Batch size'
     )
+    parser.add_argument(
+        '--checkpoint', type=str, default='checkpoint_best', help='Checkpoint to load'
+    )
+    parser.add_argument('--checkpoint_dir', type=str, default='.', help='Checkpoint directory')
     args = parser.parse_args()
     return args
 
@@ -67,9 +71,13 @@ if __name__ == "__main__":
     labels = np.array(labels)
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    print(tokenizer.eos_token)
 
     def tokenize_function(examples):
-        return tokenizer(examples, padding="max_length", truncation=True)
+        if "flan" not in args.run_name:
+            return tokenizer(examples, padding="max_length", truncation=True)
+        else:
+            return tokenizer(examples, padding="max_length", return_token_type_ids=False)
 
     np.random.seed(1)  # Reproducibility!
 
@@ -84,7 +92,7 @@ if __name__ == "__main__":
     eval_dataloader = DataLoader(eval_dataset, batch_size=args.batch_size, shuffle=False)
 
     model = AutoModelForSequenceClassification.from_pretrained(
-        f"checkpoints/{args.run_name}/checkpoint_best"
+        f"/{args.checkpoint_dir}/checkpoints/{args.run_name}/{args.checkpoint}"
     )
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -98,7 +106,8 @@ if __name__ == "__main__":
             "labels": torch.LongTensor(labels),
         })
         batch["attention_mask"] = torch.LongTensor(batch["attention_mask"])
-        batch["token_type_ids"] = torch.LongTensor(batch["token_type_ids"])
+        if "token_type_ids" in batch:
+            batch["token_type_ids"] = torch.LongTensor(batch["token_type_ids"])
         batch["input_ids"] = torch.LongTensor(batch["input_ids"])
         batch = {k: v.to(device) for k, v in batch.items()}
         return batch
@@ -106,14 +115,19 @@ if __name__ == "__main__":
 
     model.eval()
     result = []
+    result_probs = []
     for batch in tqdm(eval_dataloader):
         batch = prepare_batch(batch)
         with torch.no_grad():
             outputs = model(**batch)
 
         logits = outputs.logits
+        probabilities = torch.nn.functional.softmax(logits, dim=-1)[:, 1]
+        #print(probabilities)
         predictions = torch.argmax(logits, dim=-1)
         result += predictions.cpu().tolist()
+        result_probs += probabilities.cpu().tolist()
+
     id_column = list(range(1, 10001))
     result = [2 * r - 1 for r in result]
     df = pd.DataFrame({
@@ -121,3 +135,8 @@ if __name__ == "__main__":
         'Prediction': result
     })
     df.to_csv(f'{args.run_name}.csv', index=False)
+    df_probs = pd.DataFrame({
+        'Id': id_column,
+        'Prediction': result_probs
+    })
+    df_probs.to_csv(f'{args.run_name}_probs.csv', index=False)
