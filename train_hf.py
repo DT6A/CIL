@@ -6,6 +6,7 @@ import evaluate
 import wandb
 import torch
 from transformers import (
+    AutoConfig,
     AutoTokenizer,
     AutoModelForSequenceClassification,
     TrainingArguments,
@@ -38,6 +39,7 @@ def get_args():
     parser.add_argument('--target_modules', type=Optional[str], default=None, help='LoRA target modules')
     parser.add_argument('--checkpoint_dir', type=str, default='.', help='Checkpoint directory')
     parser.add_argument('--use_trained_tokenizer', action=argparse.BooleanOptionalAction, help='Use a trained tokenizer')
+    parser.add_argument('--from_scratch', action='store_true', default=False, help='Train from scratch')
     return parser.parse_args()
 
 def load_tweets(filename, label):
@@ -116,7 +118,10 @@ def main():
         dataset["test"] = dataset["test"]
 
     # Prepare model
-    model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=2)
+    if not args.from_scratch:
+        model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=2)
+    else:
+        model = AutoModelForSequenceClassification.from_config(AutoConfig.from_pretrained(args.model_name))
     if args.lora:
         config = LoraConfig(
             r=args.lora_rank,
