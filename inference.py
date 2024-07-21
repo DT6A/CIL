@@ -48,6 +48,7 @@ def get_args():
         '--checkpoint', type=str, default='checkpoint_best', help='Checkpoint to load'
     )
     parser.add_argument('--checkpoint_dir', type=str, default='.', help='Checkpoint directory')
+    parser.add_argument('--use_trained_tokenizer', action=argparse.BooleanOptionalAction, help='Use a trained tokenizer')
     args = parser.parse_args()
     return args
 
@@ -70,7 +71,10 @@ if __name__ == "__main__":
     tweets = np.array(tweets)
     labels = np.array(labels)
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    if not args.use_trained_tokenizer:
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(f"tokenizers/{args.model_name}")
 
     def tokenize_function(examples):
         if "flan" not in args.run_name:
