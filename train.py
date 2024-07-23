@@ -157,7 +157,10 @@ if __name__ == "__main__":
         return tokenizer(examples, padding="max_length", truncation=True)
 
     np.random.seed(1)  # Reproducibility!
-
+    print("NUMBER OF TWEETS:", len(tweets))
+    print("NUMBER OF POSITIVE TWEETS:", sum(labels))
+    print("NUMBER OF NEGATIVE TWEETS:", len(tweets) - sum(labels))
+    raise ValueError()
     shuffled_indices = np.random.permutation(len(tweets))
     split_idx = int(0.999 * len(tweets))
 

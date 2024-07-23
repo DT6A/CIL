@@ -13,7 +13,7 @@ import pandas as pd
 def get_args():
     parser = argparse.ArgumentParser(description='Tuning')
     parser.add_argument(
-        '--predictions', type=str, default="test", help='Wandb run name'
+        '--predictions', type=str, default="test", help='Predictions CSV'
     )
     args = parser.parse_args()
     return args
@@ -41,10 +41,13 @@ if __name__ == "__main__":
 
     result = original_df["Prediction"]
     swaps = 0
+    total_unpaired = 0
     new_preds = []
     for r, t in zip(result, tweets):
         opening = t.count("(")
         closing = t.count(")")
+        if opening != closing:
+            total_unpaired += 1
         if opening > closing and r == 1:
             swaps += 1
             print(t, r)
@@ -56,6 +59,7 @@ if __name__ == "__main__":
         else:
             new_preds.append(r)
 
+    print("Total number of unpaired:", total_unpaired)
     print("Number of swaps:", swaps)
     original_df["Prediction"] = new_preds
     # print(original_df)
