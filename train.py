@@ -21,6 +21,15 @@ from transformers import get_scheduler
 
 import evaluate
 
+try:
+    from peft import LoraConfig, TaskType, get_peft_model
+except ImportError:
+    print("PEFT not available")
+
+def trained_params_ratio(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad) / sum(
+        p.numel() for p in model.parameters()
+    )
 
 class TweetsDataset(Dataset):
     def __init__(self, data):
@@ -67,6 +76,36 @@ def get_args():
         action='store_true',
         default=False,
         help='Stop using wandb'
+    )
+    parser.add_argument(
+        '--lora',
+        action='store_true',
+        default=False,
+        help='Use LoRA'
+    )
+    parser.add_argument(
+        '--lora_rank',
+        type=int,
+        default=16,
+        help='LoRA rank',
+    )
+    parser.add_argument(
+        '--lora_alpha',
+        type=int,
+        default=32,
+        help='LoRA alpha',
+    )
+    parser.add_argument(
+        '--lora_bias',
+        type=str,
+        default='none',
+        help='LoRA bias'
+    )
+    parser.add_argument(
+        '--lora_dropout',
+        type=float,
+        default=0.1,
+        help='LoRA dropout'
     )
     args = parser.parse_args()
     return args
@@ -191,6 +230,19 @@ if __name__ == "__main__":
     eval_dataloader = DataLoader(val_dataset, batch_size=args.batch_size * 2)
 
     model = AutoModelForSequenceClassification.from_pretrained(args.model_name, num_labels=2)
+
+    if args.lora:
+        config = LoraConfig(
+            r=args.lora_rank,
+            lora_alpha=args.lora_alpha,
+            lora_dropout=args.lora_dropout,
+            bias=args.lora_bias,
+            modules_to_save=["classifier"],
+            task_type=TaskType.SEQ_CLS,
+        )
+        model = get_peft_model(model, config)
+    print("Trainable parameters ratio:", trained_params_ratio(model))
+        
     optimizer = AdamW(model.parameters(), lr=args.lr)
 
     num_epochs = args.n_epochs
